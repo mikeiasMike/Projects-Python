@@ -1,39 +1,41 @@
 import cv2
 import mediapipe as mp
 
-def draw_landmarks(frame, landmarks):
-    for landmark in landmarks:
-        x, y = int(landmark.x * frame.shape[1]), int(landmark.y * frame.shape[0])
-        cv2.circle(frame, (x, y), 5, (0, 255, 0), -1)
+hands = mp.solutions.hands.Hands(
+    static_image_mode=False,
+    max_num_hands=1,
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5,
+)
 
-def main():
-    mp_hands = mp.solutions.hands
-    hands = mp_hands.Hands()
+cap = cv2.VideoCapture(0)
 
-    cap = cv2.VideoCapture(0)
+while True:
+    # Lendo um quadro do vídeo
+    ret, frame = cap.read()
 
-    while cap.isOpened():
-        ret, frame = cap.read()
+    # Convertendo a imagem para RGB
+    image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-        if not ret:
-            print("Erro ao capturar o frame!")
-            break
+    # Gerando resultados do MediaPipe
+    results = hands.process(image)
 
-        rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+    # Obtendo a posição da mão
+    if results.multi_hand_landmarks:
+        hand_landmarks = results.multi_hand_landmarks[0]
+        landmark = hand_landmarks.landmark[mp.solutions.hands.HandLandmark.WRIST]
 
-        results = hands.process(rgb_frame)
+        # Movendo o cursor
+        x = int(landmark.x * frame.shape[1])
+        y = int(landmark.y * frame.shape[0])
+        cv2.moveWindow("Controle do Cursor", x, y)
 
-        if results.multi_hand_landmarks:
-            for hand_landmarks in results.multi_hand_landmarks:
-                draw_landmarks(frame, hand_landmarks.landmark)
+    # Mostrando a imagem
+    cv2.imshow("Controle do Cursor", frame)
 
-        cv2.imshow('Hand Landmarks', frame)
+    # Aperte 'q' para sair
+    if cv2.waitKey(1) & 0xFF == ord("q"):
+        break
 
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            break
-
-    cap.release()
-    cv2.destroyAllWindows()
-
-if __name__ == "__main__":
-    main()
+cap.release()
+cv2.destroyAllWindows()
